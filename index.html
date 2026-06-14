@@ -37,13 +37,15 @@
                 <img src="logo.jpg" alt="Logo" class="app-logo" style="width: 40px; border-radius: 8px;" onerror="this.style.display='none'">
                 <span>Punto Pádel</span>
             </div>
-            <ul class="nav-links">
+            <button class="hamburger" id="hamburger-btn">☰</button>
+            <ul class="nav-links" id="nav-links">
                 <li><a href="#" data-target="dashboard" class="active">📅 Dashboard</a></li>
                 <li><a href="#" data-target="ventas-rapidas">🛒 Ventas Rápidas</a></li>
                 <li><a href="#" data-target="clientes">👥 Clientes</a></li>
                 <li><a href="#" data-target="stock">📦 Stock</a></li>
                 <li><a href="#" data-target="caja">💵 Caja</a></li>
                 <li><a href="#" data-target="reportes">📊 Reportes</a></li>
+                <li class="nav-links-mobile-logout"><a href="#" id="mobile-logout-btn" style="color: var(--danger-color); font-weight: 700;">🚪 Cerrar Sesión</a></li>
             </ul>
             <div class="logout">
                 <button id="logout-btn" class="btn btn-secondary">Salir</button>
@@ -330,6 +332,20 @@
             <div class="modal-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
                 <button type="button" id="fin-delete-btn" class="btn btn-danger btn-large" style="flex: 1;">Borrar Reserva</button>
                 <button type="button" id="btn-confirm-finalize" class="btn btn-success btn-large" style="flex: 1;">Cobrar y Finalizar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Consumption Modal -->
+    <div id="modal-consumos-rapidos" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 400px;">
+            <span class="close-modal">&times;</span>
+            <h2>Agregar Consumo</h2>
+            <p style="margin-bottom: 1rem; color: var(--text-muted);">Añadir bebida a <strong id="qc-client-name"></strong></p>
+            <input type="hidden" id="qc-res-id">
+            
+            <div class="pos-grid" id="qc-products-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <!-- Carga dinámica -->
             </div>
         </div>
     </div>

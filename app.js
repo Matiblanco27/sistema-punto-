@@ -170,13 +170,25 @@ function setupEventListeners() {
         loginScreen.classList.add('active');
     });
 
+    // Hamburger Menu
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const navLinksContainer = document.getElementById('nav-links');
+    
+    if (hamburgerBtn) {
+        hamburgerBtn.addEventListener('click', () => {
+            navLinksContainer.classList.toggle('show');
+        });
+    }
+
     // Navigation
-    navLinks.forEach(link => {
+    document.querySelectorAll('.nav-links a').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
+            // Cerrar menú en móvil al clickear
+            navLinksContainer.classList.remove('show');
             const targetId = link.getAttribute('data-target');
             
-            navLinks.forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.nav-links a').forEach(n => n.classList.remove('active'));
             link.classList.add('active');
             
             views.forEach(v => v.classList.remove('active'));
@@ -285,9 +297,8 @@ function setupEventListeners() {
     document.getElementById('btn-confirm-finalize').addEventListener('click', handleFinalizeConfirm);
 
     document.getElementById('fin-delete-btn').addEventListener('click', () => {
-        const resId = document.getElementById('fin-res-id').value;
-        if(confirm('¿Estás seguro de que deseas eliminar (dar de baja) esta reserva?')) {
-            state.reservations = state.reservations.filter(r => r.id !== resId);
+        if(currentFinalizeResId && confirm('¿Estás seguro de que deseas eliminar (dar de baja) esta reserva?')) {
+            state.reservations = state.reservations.filter(r => r.id !== currentFinalizeResId);
             saveState();
             document.getElementById('modal-finalize').classList.remove('active');
             renderDashboard();
@@ -342,12 +353,25 @@ function renderDashboard() {
             const res = dailyReservations.find(r => r.time === time && r.court === court);
             
             if (res) {
-                cell.classList.add(`status-${res.status}`);
-                cell.innerHTML = `
-                    <strong>${res.clientName}</strong>
-                    <span style="font-size:0.8rem; margin-top:4px; text-transform:uppercase;">${res.status}</span>
-                `;
-                cell.addEventListener('click', () => openReservationModal(res.id));
+                if (res.status === 'reservado') {
+                    cell.classList.add('status-reservado');
+                    cell.innerHTML = `
+                        <div class="res-info">
+                            <strong>${res.clientName}</strong>
+                        </div>
+                        <div class="res-actions">
+                            <button class="btn-res" title="Editar" onclick="event.stopPropagation(); openReservationModal('${res.id}')">✏️</button>
+                            <button class="btn-res" title="Consumos" onclick="event.stopPropagation(); openQuickConsumptionModal('${res.id}')">🛒</button>
+                            <button class="btn-res" title="Finalizar" onclick="event.stopPropagation(); openFinalizeModal('${res.id}')">✔️</button>
+                            <button class="btn-res" style="color:var(--danger-color)" title="Cancelar" onclick="event.stopPropagation(); cancelReservation('${res.id}')">❌</button>
+                        </div>
+                    `;
+                    cell.addEventListener('click', () => openReservationModal(res.id));
+                } else if (res.status === 'pagado') {
+                    cell.classList.add('status-pagado');
+                    cell.innerHTML = `<strong>${res.clientName}</strong><span style="font-size:0.8rem;">PAGADO</span>`;
+                    cell.addEventListener('click', () => openReservationModal(res.id));
+                }
             } else {
                 const fijo = state.turnosFijos.find(tf => tf.day === currentDayOfWeek && tf.court === court && tf.time === time);
                 
@@ -482,10 +506,10 @@ function openFinalizeModal(resId) {
     document.getElementById('fin-court').textContent = res.court;
     document.getElementById('fin-time').textContent = res.time;
     
-    // Reset consumptions
+    // Initialize consumptions from existing or default 0
     currentConsumptions = {};
     state.stock.forEach(item => {
-        currentConsumptions[item.id] = 0;
+        currentConsumptions[item.id] = (res.consumptions && res.consumptions[item.id]) ? res.consumptions[item.id] : 0;
     });
 
     renderFinalizeConsumptions();
@@ -496,11 +520,19 @@ function renderFinalizeConsumptions() {
     const list = document.getElementById('consumptions-list');
     list.innerHTML = '';
     
-    let consumosTotal = 0;
+    let totalConsumos = 0;
+    const consumosDetalle = [];
+    const res = state.reservations.find(r => r.id === currentFinalizeResId);
+    let hasError = false;
 
     state.stock.forEach(item => {
-        const qty = currentConsumptions[item.id];
-        consumosTotal += qty * item.price;
+    const res = state.reservations.find(r => r.id === currentFinalizeResId);
+
+    state.stock.forEach(item => {
+        const qty = currentConsumptions[item.id] || 0;
+        if (qty > 0) {
+            totalConsumos += qty * item.price;
+        }
         
         const div = document.createElement('div');
         div.className = 'consumption-item';
@@ -518,8 +550,8 @@ function renderFinalizeConsumptions() {
         list.appendChild(div);
     });
 
-    document.getElementById('fin-consumos-total').textContent = `$${consumosTotal.toLocaleString()}`;
-    document.getElementById('fin-grand-total').textContent = `$${(COURT_PRICE + consumosTotal).toLocaleString()}`;
+    document.getElementById('fin-consumos-total').textContent = `$${totalConsumos.toLocaleString()}`;
+    document.getElementById('fin-grand-total').textContent = `$${(COURT_PRICE + totalConsumos).toLocaleString()}`;
 }
 
 // Attach to window so onclick works
@@ -1045,6 +1077,67 @@ window.deleteTurnoFijo = function(id) {
         renderTurnosFijos();
         renderDashboard();
     }
+}
+
+window.cancelReservation = function(resId) {
+    if(confirm('¿Estás seguro de que deseas eliminar (dar de baja) esta reserva?')) {
+        const res = state.reservations.find(r => r.id === resId);
+        if (res && res.consumptions) {
+            for (const [itemId, qty] of Object.entries(res.consumptions)) {
+                const stockItem = state.stock.find(s => s.id === itemId);
+                if (stockItem) stockItem.qty += qty;
+            }
+        }
+        state.reservations = state.reservations.filter(r => r.id !== resId);
+        saveState();
+        renderDashboard();
+    }
+};
+
+let currentQCResId = null;
+
+window.openQuickConsumptionModal = function(resId) {
+    currentQCResId = resId;
+    const res = state.reservations.find(r => r.id === resId);
+    document.getElementById('qc-client-name').textContent = res.clientName;
+    
+    renderQCProductsGrid();
+    document.getElementById('modal-consumos-rapidos').classList.add('active');
+};
+
+function renderQCProductsGrid() {
+    const grid = document.getElementById('qc-products-grid');
+    grid.innerHTML = '';
+    
+    const res = state.reservations.find(r => r.id === currentQCResId);
+    if (!res.consumptions) res.consumptions = {};
+    
+    state.stock.forEach(item => {
+        const addedQty = res.consumptions[item.id] || 0;
+        
+        const card = document.createElement('div');
+        card.className = 'pos-card';
+        card.innerHTML = `
+            <div class="pos-icon">${item.icon || '📦'}</div>
+            <div class="pos-name">${item.name}</div>
+            <div class="pos-price">$${item.price}</div>
+            <div class="pos-stock">Stock: ${item.qty}</div>
+            <div style="font-size:0.85rem; color:var(--success-color); margin-top:0.5rem; font-weight:700;">Agregados: ${addedQty}</div>
+        `;
+        card.onclick = () => {
+            if (item.qty <= 0) {
+                alert('Sin stock'); return;
+            }
+            if (confirm(`¿Añadir 1x ${item.name} a la cuenta de ${res.clientName}?`)) {
+                res.consumptions[item.id] = addedQty + 1;
+                item.qty -= 1; // Descontar inmediatamente
+                saveState();
+                renderQCProductsGrid();
+                renderStock();
+            }
+        };
+        grid.appendChild(card);
+    });
 }
 
 // Start app
