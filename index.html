@@ -43,9 +43,9 @@
                 <li><a href="#" data-target="ventas-rapidas">🛒 Ventas Rápidas</a></li>
                 <li><a href="#" data-target="clientes">👥 Clientes</a></li>
                 <li><a href="#" data-target="stock">📦 Stock</a></li>
-                <li><a href="#" data-target="caja">💵 Caja</a></li>
-                <li><a href="#" data-target="reportes">📊 Reportes</a></li>
-                <li class="nav-links-mobile-logout"><a href="#" id="mobile-logout-btn" style="color: var(--danger-color); font-weight: 700;">🚪 Cerrar Sesión</a></li>
+                <li class="admin-only"><a href="#" data-target="caja">💵 Caja</a></li>
+                <li class="admin-only"><a href="#" data-target="reportes">📊 Reportes</a></li>
+                <li class="nav-links-mobile-logout"><a href="#" id="mobile-logout-btn" style="color: var(--danger-color); font-weight: 700;">🚪 Salir</a></li>
             </ul>
             <div class="logout">
                 <button id="logout-btn" class="btn btn-secondary">Salir</button>
@@ -256,7 +256,7 @@
     <!-- New Reservation Modal -->
     <div id="modal-reservation" class="modal">
         <div class="modal-content glass-panel">
-            <span class="close-modal">&times;</span>
+            <span class="close-modal">&times; Salir</span>
             <h2 id="reservation-modal-title">Nueva Reserva</h2>
             <form id="reservation-form">
                 <input type="hidden" id="res-id">
@@ -301,7 +301,7 @@
     <!-- Finalize Reservation Modal -->
     <div id="modal-finalize" class="modal">
         <div class="modal-content glass-panel">
-            <span class="close-modal">&times;</span>
+            <span class="close-modal">&times; Salir</span>
             <h2>Cierre de Reserva</h2>
             <div class="finalize-summary">
                 <p>Cancha: <strong id="fin-court"></strong></p>
@@ -339,7 +339,7 @@
     <!-- Quick Consumption Modal -->
     <div id="modal-consumos-rapidos" class="modal">
         <div class="modal-content glass-panel" style="max-width: 400px;">
-            <span class="close-modal">&times;</span>
+            <span class="close-modal">&times; Salir</span>
             <h2>Agregar Consumo</h2>
             <p style="margin-bottom: 1rem; color: var(--text-muted);">Añadir bebida a <strong id="qc-client-name"></strong></p>
             <input type="hidden" id="qc-res-id">
@@ -353,7 +353,7 @@
     <!-- Client Modal -->
     <div id="modal-client" class="modal">
         <div class="modal-content glass-panel">
-            <span class="close-modal">&times;</span>
+            <span class="close-modal">&times; Salir</span>
             <h2 id="client-modal-title">Nuevo Cliente</h2>
             <form id="client-form">
                 <input type="hidden" id="client-id">
@@ -379,7 +379,7 @@
     <!-- VR Sale Modal -->
     <div id="modal-vr-sale" class="modal">
         <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
-            <span class="close-modal">&times;</span>
+            <span class="close-modal">&times; Salir</span>
             <h2>Confirmar Venta</h2>
             <div style="font-size: 4rem; margin: 1rem 0;" id="vr-modal-icon">📦</div>
             <h3 id="vr-modal-product-name" style="font-size: 1.5rem; margin-bottom: 0.5rem;">Producto</h3>
@@ -414,7 +414,7 @@
     <!-- Turnos Fijos Modal -->
     <div id="modal-turnos-fijos" class="modal">
         <div class="modal-content glass-panel" style="max-width: 600px;">
-            <span class="close-modal">&times;</span>
+            <span class="close-modal">&times; Salir</span>
             <h2>Gestión de Turnos Fijos</h2>
             <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Los turnos fijos aparecerán automáticamente en la grilla cada semana.</p>
             

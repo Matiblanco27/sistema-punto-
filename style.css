@@ -100,13 +100,15 @@ h2 { margin-bottom: 1rem; font-size: 1.5rem; }
     flex-direction: column;
     height: 100vh;
     border-radius: 0;
-    border-right: 1px solid var(--surface-border);
+    background: #0f172a; /* Slate 900 para sidebar premium */
+    color: #f8fafc;
+    border-right: none;
 }
 .logo {
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 2rem;
-    color: var(--primary-color);
+    color: #f8fafc;
 }
 .hamburger {
     display: none;
@@ -114,7 +116,7 @@ h2 { margin-bottom: 1rem; font-size: 1.5rem; }
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--text-main);
+    color: #f8fafc;
     padding: 0.5rem;
 }
 .nav-links {
@@ -126,14 +128,14 @@ h2 { margin-bottom: 1rem; font-size: 1.5rem; }
     display: block;
     padding: 0.75rem 1rem;
     text-decoration: none;
-    color: var(--text-muted);
+    color: #cbd5e1;
     font-weight: 500;
     border-radius: 8px;
     transition: var(--transition);
 }
 .nav-links a:hover, .nav-links a.active {
-    background: rgba(37, 99, 235, 0.1);
-    color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 .logout { margin-top: auto; }
 
@@ -283,7 +285,7 @@ h2 { margin-bottom: 1rem; font-size: 1.5rem; }
     transform: scale(1.02);
     box-shadow: var(--shadow-sm);
 }
-.status-libre { background-color: #f8fafc; color: #475569; border: 1px dashed #cbd5e1; }
+.status-libre { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
 .status-reservado { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
 .status-pagado { background-color: #e0e7ff; color: #3730a3; border: 1px solid #a5b4fc; }
 
@@ -494,3 +496,8 @@ tbody tr:hover { background-color: rgba(255,255,255,0.4); }
     .form-row { flex-direction: column; gap: 0; }
 }
 .nav-links-mobile-logout { display: none; }
+
+/* Role based hiding */
+body.role-empleado .admin-only {
+    display: none !important;
+}

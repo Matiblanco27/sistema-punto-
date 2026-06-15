@@ -144,6 +144,8 @@ function init() {
 }
 
 function showApp() {
+    const role = localStorage.getItem('padel_role') || 'admin';
+    document.body.className = `role-${role}`;
     loginScreen.classList.remove('active');
     appLayout.classList.add('active');
 }
@@ -153,11 +155,16 @@ function setupEventListeners() {
     // Login
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const user = document.getElementById('username').value;
+        const user = document.getElementById('username').value.toLowerCase();
         const pass = document.getElementById('password').value;
         
-        if (user === 'puntopadel' && pass === 'puntopadel2026') {
+        if (user === 'admin' && pass === 'puntopadel2026') {
             localStorage.setItem('padel_logged_in', 'true');
+            localStorage.setItem('padel_role', 'admin');
+            showApp();
+        } else if (user === 'empleado' && pass === 'padel123') {
+            localStorage.setItem('padel_logged_in', 'true');
+            localStorage.setItem('padel_role', 'empleado');
             showApp();
         } else {
             alert('Usuario o contraseña incorrectos.');
@@ -166,9 +173,21 @@ function setupEventListeners() {
 
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('padel_logged_in');
+        localStorage.removeItem('padel_role');
         appLayout.classList.remove('active');
         loginScreen.classList.add('active');
     });
+
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('padel_logged_in');
+            localStorage.removeItem('padel_role');
+            appLayout.classList.remove('active');
+            loginScreen.classList.add('active');
+        });
+    }
 
     // Hamburger Menu
     const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -231,6 +250,8 @@ function setupEventListeners() {
             modalClient.classList.remove('active');
             modalVrSale.classList.remove('active');
             modalTurnosFijos.classList.remove('active');
+            const modalConsumosRapidos = document.getElementById('modal-consumos-rapidos');
+            if (modalConsumosRapidos) modalConsumosRapidos.classList.remove('active');
         });
     });
 
@@ -526,9 +547,6 @@ function renderFinalizeConsumptions() {
     let hasError = false;
 
     state.stock.forEach(item => {
-    const res = state.reservations.find(r => r.id === currentFinalizeResId);
-
-    state.stock.forEach(item => {
         const qty = currentConsumptions[item.id] || 0;
         if (qty > 0) {
             totalConsumos += qty * item.price;
@@ -681,16 +699,21 @@ function renderStock() {
         // Icons mapping for visual appeal
         let icon = getProductIcon(item.id);
 
+        const role = localStorage.getItem('padel_role') || 'admin';
+        const adminActions = role === 'admin' ? `
+            <div class="stock-actions">
+                <button class="btn btn-icon btn-danger" onclick="manualStockUpdate('${item.id}', -1)">-</button>
+                <button class="btn btn-icon btn-success" onclick="manualStockUpdate('${item.id}', 1)">+</button>
+            </div>
+        ` : '';
+
         const card = document.createElement('div');
         card.className = 'stock-card glass-panel';
         card.innerHTML = `
             <div class="stock-icon">${icon}</div>
             <div class="stock-name">${item.name}</div>
             <div class="stock-qty">${item.qty}</div>
-            <div class="stock-actions">
-                <button class="btn btn-icon btn-danger" onclick="manualStockUpdate('${item.id}', -1)">-</button>
-                <button class="btn btn-icon btn-success" onclick="manualStockUpdate('${item.id}', 1)">+</button>
-            </div>
+            ${adminActions}
             <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">
                 Precio Venta: $${item.price}
             </div>
