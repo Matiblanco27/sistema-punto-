@@ -158,7 +158,7 @@ function setupEventListeners() {
         const user = document.getElementById('username').value.toLowerCase();
         const pass = document.getElementById('password').value;
         
-        if (user === 'admin' && pass === 'puntopadel2026') {
+        if ((user === 'admin' || user === 'puntopadel') && pass === 'puntopadel2026') {
             localStorage.setItem('padel_logged_in', 'true');
             localStorage.setItem('padel_role', 'admin');
             showApp();
@@ -538,19 +538,27 @@ function openFinalizeModal(resId) {
 }
 
 function renderFinalizeConsumptions() {
+    try {
     const list = document.getElementById('consumptions-list');
     list.innerHTML = '';
     
     let totalConsumos = 0;
-    const consumosDetalle = [];
     const res = state.reservations.find(r => r.id === currentFinalizeResId);
-    let hasError = false;
+    
+    if (!res.split) res.split = { count: 1, players: [] };
+    if (!res.split.players) res.split.players = [];
+    const count = res.split.count;
+    const countSelect = document.getElementById('fin-players-count');
+    if (countSelect) countSelect.value = count.toString();
 
     state.stock.forEach(item => {
         const qty = currentConsumptions[item.id] || 0;
         if (qty > 0) {
             totalConsumos += qty * item.price;
         }
+        
+        const prevQty = (res.consumptions && res.consumptions[item.id]) ? res.consumptions[item.id] : 0;
+        const maxAllowed = prevQty + item.qty;
         
         const div = document.createElement('div');
         div.className = 'consumption-item';
@@ -562,14 +570,76 @@ function renderFinalizeConsumptions() {
             <div class="consumption-controls">
                 <button type="button" class="btn btn-icon btn-secondary" onclick="updateConsumption('${item.id}', -1)">-</button>
                 <span style="font-weight:600; min-width:20px; text-align:center;">${qty}</span>
-                <button type="button" class="btn btn-icon btn-secondary" onclick="updateConsumption('${item.id}', 1)" ${item.qty <= qty ? 'disabled' : ''}>+</button>
+                <button type="button" class="btn btn-icon btn-secondary" onclick="updateConsumption('${item.id}', 1)" ${qty >= maxAllowed ? 'disabled' : ''}>+</button>
             </div>
         `;
         list.appendChild(div);
     });
 
+    const grandTotal = COURT_PRICE + totalConsumos;
+    
+    let totalAbonado = 0;
+    let unpaidCount = 0;
+    for (let i = 0; i < count; i++) {
+        if (res.split.players[i] && res.split.players[i].paid) {
+            totalAbonado += res.split.players[i].amount;
+        } else {
+            unpaidCount++;
+        }
+    }
+    
+    const restante = Math.max(0, grandTotal - totalAbonado);
+    const amountPerUnpaid = unpaidCount > 0 ? Math.round(restante / unpaidCount) : 0;
+
     document.getElementById('fin-consumos-total').textContent = `$${totalConsumos.toLocaleString()}`;
-    document.getElementById('fin-grand-total').textContent = `$${(COURT_PRICE + totalConsumos).toLocaleString()}`;
+    document.getElementById('fin-grand-total').textContent = `$${grandTotal.toLocaleString()}`;
+    
+    const abEl = document.getElementById('fin-abonado-total');
+    if (abEl) abEl.textContent = `$${totalAbonado.toLocaleString()}`;
+    
+    const restEl = document.getElementById('fin-restante-total');
+    if (restEl) restEl.textContent = `$${restante.toLocaleString()}`;
+    
+    const playersList = document.getElementById('split-players-list');
+    if (playersList) {
+        playersList.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+            const player = res.split.players[i] || { paid: false };
+            const isPaid = player.paid;
+            const amountToShow = isPaid ? player.amount : amountPerUnpaid;
+            
+            const methodHTML = isPaid 
+                ? `<span style="font-size:0.85rem; padding:0.25rem 0.5rem; background:#f1f5f9; border-radius:4px; border:1px solid #cbd5e1; font-weight:600;">${player.method.toUpperCase()}</span>`
+                : `<select id="split-method-${i}" style="padding:0.25rem; border-radius:4px; border:1px solid #cbd5e1; background:white;">
+                       <option value="efectivo">Efectivo</option>
+                       <option value="transferencia">Transf.</option>
+                       <option value="mercadopago">Mercado Pago</option>
+                   </select>`;
+                   
+            const div = document.createElement('div');
+            div.style.cssText = `display:flex; justify-content:space-between; align-items:center; padding:0.75rem; background:${isPaid ? '#ecfdf5' : '#fff'}; border:1px solid ${isPaid ? '#a7f3d0' : '#e2e8f0'}; border-radius:6px; transition:all 0.2s;`;
+            
+            div.innerHTML = `
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <input type="checkbox" id="split-cb-${i}" ${isPaid ? 'checked' : ''} onchange="toggleSplitPayment(${i}, this)" style="width:1.2rem; height:1.2rem; accent-color:var(--success-color); cursor:pointer;">
+                    <label for="split-cb-${i}" style="font-weight:600; cursor:pointer; color:${isPaid ? 'var(--success-color)' : 'var(--text-color)'}">
+                        ${count === 1 ? 'Pago Total' : 'Jugador ' + (i + 1)}
+                    </label>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <strong style="color:${isPaid ? 'var(--success-color)' : 'var(--text-color)'}; font-size:1.1rem;">$${amountToShow.toLocaleString()}</strong>
+                    ${methodHTML}
+                </div>
+            `;
+            playersList.appendChild(div);
+        }
+    }
+    
+    const globalMethodGroup = document.getElementById('fin-global-method-group');
+    if (globalMethodGroup) {
+        globalMethodGroup.style.display = (count === 1 && restante > 0) ? 'block' : 'none';
+    }
+    } catch (err) { alert('Error en render: ' + err.message); }
 }
 
 // Attach to window so onclick works
@@ -577,55 +647,142 @@ window.updateConsumption = function(itemId, change) {
     const stockItem = state.stock.find(i => i.id === itemId);
     if (!stockItem) return;
 
+    const res = state.reservations.find(r => r.id === currentFinalizeResId);
+    const prevQty = (res.consumptions && res.consumptions[itemId]) ? res.consumptions[itemId] : 0;
+    
     let newQty = currentConsumptions[itemId] + change;
     if (newQty < 0) newQty = 0;
-    if (newQty > stockItem.qty) newQty = stockItem.qty; // Can't consume more than stock
+    
+    const maxAllowed = prevQty + stockItem.qty;
+    if (newQty > maxAllowed) newQty = maxAllowed; 
 
     currentConsumptions[itemId] = newQty;
     renderFinalizeConsumptions();
 };
 
-function handleFinalizeConfirm() {
+window.changeSplitCount = function() {
+    const newCount = parseInt(document.getElementById('fin-players-count').value);
     const res = state.reservations.find(r => r.id === currentFinalizeResId);
-    const method = document.getElementById('fin-payment-method').value;
+    if (!res.split) res.split = { count: 1, players: [] };
+    if (!res.split.players) res.split.players = [];
+    res.split.count = newCount;
+    saveState();
+    renderFinalizeConsumptions();
+};
+
+window.toggleSplitPayment = function(index, checkbox) {
+    try {
+    const isChecked = checkbox.checked;
+    const res = state.reservations.find(r => r.id === currentFinalizeResId);
+    if (!res.split) return;
+    if (!res.split.players) res.split.players = [];
+    
+    if (isChecked) {
+        const methodSelect = document.getElementById(`split-method-${index}`);
+        const method = methodSelect ? methodSelect.value : 'efectivo';
+        
+        let totalPaid = 0;
+        let unpaidCount = 0;
+        for (let i = 0; i < res.split.count; i++) {
+            if (res.split.players[i] && res.split.players[i].paid) {
+                totalPaid += res.split.players[i].amount;
+            } else {
+                unpaidCount++;
+            }
+        }
+        
+        let consumosTotal = 0;
+        for (const [itemId, qty] of Object.entries(currentConsumptions)) {
+            if (qty > 0) {
+                const stockItem = state.stock.find(i => i.id === itemId);
+                consumosTotal += qty * stockItem.price;
+            }
+        }
+        const grandTotal = COURT_PRICE + consumosTotal;
+        const restante = Math.max(0, grandTotal - totalPaid);
+        const amount = unpaidCount > 0 ? Math.round(restante / unpaidCount) : 0;
+        
+        const tId = generateId();
+        const playerLabel = res.split.count === 1 ? 'Pago Único' : `Jugador ${index + 1}`;
+        state.transactions.unshift({
+            id: tId,
+            date: state.currentDate,
+            time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+            description: `Abono ${playerLabel} (Cancha ${res.court})`,
+            method: method,
+            amount: amount
+        });
+        
+        res.split.players[index] = { paid: true, method, amount, transactionId: tId };
+    } else {
+        const tId = res.split.players[index].transactionId;
+        state.transactions = state.transactions.filter(t => t.id !== tId);
+        res.split.players[index] = { paid: false };
+    }
+    
+    saveState();
+    renderFinalizeConsumptions();
+    renderCaja();
+    } catch(err) { alert('Error en checkbox: ' + err.message); }
+};
+
+function handleFinalizeConfirm() {
+    try {
+    const res = state.reservations.find(r => r.id === currentFinalizeResId);
+    if (!res.split) res.split = { count: 1, players: [] };
+    if (!res.split.players) res.split.players = [];
     
     let consumosTotal = 0;
-    let itemsDescripton = [];
-
-    // Deduct stock and calculate total
     for (const [itemId, qty] of Object.entries(currentConsumptions)) {
         if (qty > 0) {
             const stockItem = state.stock.find(i => i.id === itemId);
-            stockItem.qty -= qty;
+            const prevQty = (res.consumptions && res.consumptions[itemId]) ? res.consumptions[itemId] : 0;
+            const newQtyToDeduct = qty - prevQty;
+            if (newQtyToDeduct > 0) stockItem.qty -= newQtyToDeduct;
             consumosTotal += qty * stockItem.price;
-            itemsDescripton.push(`${qty}x ${stockItem.name}`);
         }
     }
 
     const grandTotal = COURT_PRICE + consumosTotal;
     
-    // Update Reservation
+    let totalPaid = 0;
+    for (let i = 0; i < res.split.count; i++) {
+        if (res.split.players[i] && res.split.players[i].paid) {
+            totalPaid += res.split.players[i].amount;
+        }
+    }
+    const restante = Math.max(0, grandTotal - totalPaid);
+    
     res.status = 'pagado';
     res.consumptions = currentConsumptions;
     
-    // Create Transaction
-    let desc = `Reserva ${res.court} ${res.time}`;
-    if (itemsDescripton.length > 0) desc += ` + ${itemsDescripton.join(', ')}`;
-    
-    state.transactions.unshift({
-        id: generateId(),
-        date: state.currentDate,
-        time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-        description: desc,
-        method: method,
-        amount: grandTotal
-    });
+    if (restante > 0) {
+        if (res.split.count === 1) {
+            const method = document.getElementById('fin-payment-method').value;
+            const tId = generateId();
+            state.transactions.unshift({
+                id: tId,
+                date: state.currentDate,
+                time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                description: `Cancha ${res.court} - ${res.clientName}`,
+                method: method,
+                amount: restante
+            });
+            res.split.players[0] = { paid: true, method, amount: restante, transactionId: tId };
+        } else {
+            if (!confirm(`Falta cobrar $${restante.toLocaleString()}. ¿Desea cerrar la reserva de todas formas asumiendo esta pérdida?`)) {
+                res.status = 'reservado'; // revert status
+                return;
+            }
+        }
+    }
 
     saveState();
     modalFinalize.classList.remove('active');
     renderDashboard();
     renderStock();
     renderCaja();
+    } catch(err) { alert('Error en finalizar: ' + err.message + ' at ' + err.stack); }
 }
 
 // --- Clients Logic ---
@@ -1092,6 +1249,32 @@ function handleTurnoFijoSubmit(e) {
     renderTurnosFijos();
     renderDashboard();
 }
+
+window.resetSystem = function() {
+    if (confirm('⚠️ ¿Estás seguro de Reiniciar el Sistema? Esto borrará TODAS las reservas, caja y clientes tanto de tu dispositivo como de la NUBE de forma irreversible. (Se conservará tu stock)')) {
+        
+        state.reservations = [];
+        state.transactions = [];
+        state.clients = [];
+        state.turnosFijos = [];
+        
+        saveState();
+
+        const rootRef = firebase.database().ref('/');
+        Promise.all([
+            rootRef.child('reservations').remove(),
+            rootRef.child('transactions').remove(),
+            rootRef.child('clients').remove(),
+            rootRef.child('turnosFijos').remove()
+        ]).then(() => {
+            localStorage.removeItem('padelState');
+            location.reload();
+        }).catch(() => {
+            localStorage.removeItem('padelState');
+            location.reload();
+        });
+    }
+};
 
 window.deleteTurnoFijo = function(id) {
     if(confirm('¿Eliminar este turno fijo?')) {

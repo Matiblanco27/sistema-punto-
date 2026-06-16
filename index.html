@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema Punto Pádel</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <!-- Login Screen -->
@@ -46,6 +46,7 @@
                 <li class="admin-only"><a href="#" data-target="caja">💵 Caja</a></li>
                 <li class="admin-only"><a href="#" data-target="reportes">📊 Reportes</a></li>
                 <li class="nav-links-mobile-logout"><a href="#" id="mobile-logout-btn" style="color: var(--danger-color); font-weight: 700;">🚪 Salir</a></li>
+                <li class="admin-only" style="margin-top: auto; padding-top: 2rem;"><a href="#" onclick="resetSystem()" style="color: #ef4444; font-size: 0.8rem; padding: 0.5rem;"><span class="icon">⚠️</span> Reiniciar Sistema (Borrar Todo)</a></li>
             </ul>
             <div class="logout">
                 <button id="logout-btn" class="btn btn-secondary">Salir</button>
@@ -317,11 +318,28 @@
             <div class="totals-section">
                 <div class="total-row"><span>Cancha:</span> <span>$50.000</span></div>
                 <div class="total-row"><span>Consumos:</span> <span id="fin-consumos-total">$0</span></div>
-                <div class="total-row grand-total"><span>Total a Cobrar:</span> <span id="fin-grand-total">$50.000</span></div>
+                <div class="total-row grand-total"><span>Total Turno:</span> <span id="fin-grand-total">$50.000</span></div>
+                <div class="total-row" style="color: var(--success-color); margin-top: 0.5rem;"><span>Ya Abonado:</span> <span id="fin-abonado-total">$0</span></div>
+                <div class="total-row grand-total" style="color: var(--danger-color);"><span>Restante a Cobrar:</span> <span id="fin-restante-total">$50.000</span></div>
             </div>
 
-            <div class="input-group">
-                <label>Método de Pago</label>
+            <div class="split-payments-section glass-panel" style="margin-bottom: 1.5rem; background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="color: var(--primary-color); margin: 0; font-size: 1.1rem;">Repartir Costo</h3>
+                    <select id="fin-players-count" onchange="changeSplitCount()" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-weight: 500;">
+                        <option value="1">Pago Único (1 Persona)</option>
+                        <option value="4">Dividir en 4 Jugadores</option>
+                        <option value="6">Dividir en 6 Jugadores</option>
+                    </select>
+                </div>
+                
+                <div id="split-players-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <!-- Generado dinámicamente -->
+                </div>
+            </div>
+
+            <div class="input-group" id="fin-global-method-group">
+                <label>Método de Pago para el Saldo Restante</label>
                 <select id="fin-payment-method">
                     <option value="efectivo">Efectivo</option>
                     <option value="transferencia">Transferencia</option>
@@ -471,6 +489,6 @@
     <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=11"></script>
 </body>
 </html>
